@@ -1,0 +1,73 @@
+pmMigratorPlugin
+================
+
+The `pmMigratorPlugin` is a symfony plugin that provides objects for performing
+data migration.
+You can create these objects for migrating from CSV file i.e..
+
+Installation
+------------
+
+  * Install the plugin
+
+    * Subversion
+
+          [bash]
+          $ svn co http://svn.symfony-project.com/plugins/pmMigratorPlugin/trunk pmMigratorPlugin
+
+Usage
+-----
+
+You can use pmMigrator objects everywhere. In this example, I will show you how
+to create a Task that permform a migration from CSV file(s) to Propel objects.
+This example is assuming that you have the schema.yml and the objects created.
+Also, this example is assuming that you have a CSV file with the objects data.
+
+  * Create a task
+
+        [bash]
+        $ ./symfony generate:task migration
+
+        [php]
+        $migrator = new pmMigratorCSV(
+          // this should be the path to your CSV file
+          sfConfig::get("sf_data_dir")."/csv/myCSVFile.csv",
+          // Class name
+          "Address",
+          // Class fields: fill an array with all the columns. If any column is not used, fill in it with "null"
+          array(null, null, null, null, null, "street", "number", "floor", "flat", "city_id", null, null, null, null)
+        );
+
+        // set hooks for "city_id" field. Any class field can have many hooks (or none)
+        $migrator->setFieldHook("city_id", array("migrateTask", "getCityId"));
+
+        // set hooks for the object
+        $migrator->setObjectHooks(array(
+          array("migrateTask", "guessStateId"),
+          array("migrateTask", "guessZipCode")
+        ));
+
+        // migrate in debug mode.
+        $migrator->migrate(false, true);
+
+  * Move the CSV file to data/csv/ (not mandatory).
+
+
+Field hooks
+-----------
+
+Any class field can have multiple hooks. Field hooks are callbacks that are
+performed before the object is populated.
+
+Field hooks are set with the setFieldHook($field, $hook), where $field is the
+field name and hook is a valid callback.
+
+
+Object hooks
+------------
+
+An object can have multiple hooks. Object hooks are callbacks that are
+performed before the object is saved (but after the object is populated).
+
+Object hooks are set with the setObjectHooks($hooks), where $field is the
+field name and hook is a valid callback or an array of valid callbacks.
