@@ -224,7 +224,14 @@ abstract class pmMigrator
    * @param boolean $dry Run in dry mode
    * @param boolean $debug Run in debug mode
    */
-  public abstract function migrate($dry = false, $debug = false);
+  public abstract function toDB($dry = false, $debug = false);
+
+  /**
+   * Perform the migration into a fixture file.
+   * @param boolean $dry Run in dry mode
+   * @param boolean $debug Run in debug mode
+   */
+  public abstract function toFixture($fixture_name = null, $dry = false, $debug = false);
 
   /**
    * Create an object

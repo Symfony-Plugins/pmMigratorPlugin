@@ -56,7 +56,7 @@ class pmMigratorCSV extends pmMigrator
    * @param boolean $dry Run in dry mode
    * @param boolean $debug Run in debug mode
    */
-  public function migrate($dry = false, $debug = false)
+  public function toDB($dry = false, $debug = false)
   {
     $handle = fopen($this->getFile(), "r");
 
@@ -85,5 +85,89 @@ class pmMigratorCSV extends pmMigrator
     {
       throw new Exception("File {$this->getFile()} could not be opened.");
     }
+  }
+
+  /**
+   * Perform the migration into a fixture file.
+   * @param boolean $dry Run in dry mode
+   * @param boolean $debug Run in debug mode
+   */
+  public function toFixture($fixture_name = null, $dry = false, $debug = false)
+  {
+    $handle = fopen($this->getFile(), "r");
+
+    $objects = array();
+    $nb_lines = 0;
+
+    if ($handle)
+    {
+      while($data = fgetcsv($handle))
+      {
+        $object = $this->createObject($debug);
+
+        for ($i = 0; $i < count($data); $i++)
+        {
+          if (!is_null($this->getClassField($i)))
+          {
+            $value = $data[$i];
+            $this->populateObjectField($object, $this->getClassField($i), $value, $debug);
+          }
+        }
+
+        $this->runObjectHooks($object, $debug);
+
+        $objects[] = $object;
+      }
+
+      fclose($handle);
+
+      if ($dry)
+      {
+        fwrite(STDOUT, sfYaml::dump($this->toArray($objects), 3));
+      }
+      else
+      {
+        if (is_null($fixture_name))
+        {
+          $fixture_name = sfInflector::underscore($this->getClassName());
+        }
+        $fixture_handle = fopen(sfConfig::get('sf_data_dir')."/fixtures/$fixture_name.yml", "w");
+        fwrite($fixture_handle, sfYaml::dump($this->toArray($objects), 3));
+      }
+    }
+    else
+    {
+      throw new Exception("File {$this->getFile()} could not be opened.");
+    }
+  }
+
+  private function toArray($array_of_objects)
+  {
+    if (!count($array_of_objects))
+    {
+      return array();
+    }
+
+    $array = array($this->getClassName() => array());
+
+    $count = 0;
+    foreach ($array_of_objects as $object)
+    {
+      $index = $this->getClassName().'_'.++$count;
+      $array[$this->getClassName()][$index] = $this->fixKeyNames($object->toArray());
+    }
+
+    return $array;
+  }
+
+  private function fixKeyNames($array)
+  {
+    $ret = array();
+    foreach ($array as $k => $v)
+    {
+      $k = sfInflector::underscore($k);
+      $ret[$k] = $v;
+    }
+    return $ret;
   }
 }
